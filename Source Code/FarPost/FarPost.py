@@ -18,7 +18,7 @@ def check_connection():
         print("OK")
         return
     else:
-        print("Ошибка соединения. Сервис HH.ru не доступен.")
+        print("Ошибка соединения. Сервис FarPost.ru не доступен.")
         raise Exception
 
 
@@ -224,17 +224,21 @@ def filter_data(df):
 def run_farpost():
     try:
         check_connection()
+        print("FarPost: начинаем собирать данные")
         df = get_farpost_data()
         df = filter_data(df)
         return df
     except Exception:
-        print("FarPost - произошла ошибка. Сбор данных с источника остановлен.")
+        print("FarPost: произошла ошибка. Сбор данных с источника остановлен.")
+
+
+def collect_to_excel():
+    df_farpost = run_farpost()
+    today_date = datetime.date.today()
+    path_to_export = os.path.join(os.path.dirname(__file__), '..', '..', 'Data', 'FarPost',
+                                  f"FarPost - {today_date}.xlsx")
+    df_farpost.to_excel(path_to_export, sheet_name='Данные', index=False)
 
 
 if __name__ == "__main__":
-    df_farpost = run_farpost()
-    print("FarPost: начинаем собирать данные")
-    today_date = datetime.date.today()
-    path_to_export = os.path.join(os.path.dirname(__file__), '..', '..', 'Data', 'FarPost', f"FarPost - {today_date}.xlsx")
-    df_farpost.to_excel(path_to_export, sheet_name='Данные', index=False)
-
+    collect_to_excel()

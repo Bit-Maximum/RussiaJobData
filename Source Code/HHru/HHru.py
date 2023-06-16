@@ -167,12 +167,16 @@ def run_hhru():
         df = filter_data(df)
         return df
     except Exception:
-        return -1
+        print("HHru: произошла ошибка. Сбор данных с источника остановлен.")
 
 
-if __name__ == "__main__":
+def collect_to_excel():
     df_hhru = run_hhru()
     current_date = datetime.now().date()
     path_to_export = os.path.join(os.path.dirname(__file__), '..', '..', 'Data', 'HHru', f"HHru - {current_date}.xlsx")
     df_hhru.to_excel(path_to_export, sheet_name='Данные', index=False)
+
+
+if __name__ == "__main__":
+    collect_to_excel()
 
