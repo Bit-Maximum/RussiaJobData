@@ -167,3 +167,6 @@ def run_hhru():
 
 if __name__ == "__main__":
     df_hhru = run_hhru()
+    current_date = datetime.now().date()
+    df_hhru.to_excel(f"HHru - {current_date}.xlsx", sheet_name='Sheet1', index=False)
+
