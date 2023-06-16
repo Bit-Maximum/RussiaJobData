@@ -1,9 +1,11 @@
-import requests as r
-import json
+import os
+from datetime import datetime
 import time
+import json
+
+import requests as r
 import pandas as pd
 
-from datetime import datetime
 
 
 # Пауза между запросами на API: TIME_OUT - в рамках одной вакансии, REGION_TIME_OUT - при смене региона/профессии
@@ -11,6 +13,7 @@ TIME_OUT = 1
 REGION_TIME_OUT = 1.5
 
 
+# Время выполнения программы: ~2 часа
 def check_connection():
     print("Подключение к HH.ru: ", end="")
     params = {
@@ -21,6 +24,7 @@ def check_connection():
     response = r.get("https://api.hh.ru/vacancies", params=params)
     if response.status_code == 200:
         print("OK")
+        return
     else:
         print("Ошибка соединения. Сервис HH.ru не доступен.")
         raise Exception
@@ -124,7 +128,7 @@ def get_hhru_data():
 
 
 def filter_data(df):
-    #  Удаление лишних данных
+    # Удаление лишних данных
     df = df.drop_duplicates(subset=["id"])
     df = df.drop(['premium', 'department', "has_test", "response_letter_required", "type", 'address', 'response_url',
                   'sort_point_distance', 'created_at', 'archived', 'apply_alternate_url', 'insider_interview', 'url',
@@ -133,7 +137,7 @@ def filter_data(df):
                   'working_time_modes', 'accept_temporary', 'professional_roles',
                   'accept_incomplete_resumes', 'employment'], axis=1)
 
-    #  Получаем значения атрибутов из "сырых" данных
+    # Получаем значения атрибутов из "сырых" данных
     df["Вакантных мест"] = 1
     df["Зарплата до"] = df["salary"]
     df["area"] = df["area"].apply(lambda x: x.get("name") if x is not None else "")
@@ -142,12 +146,12 @@ def filter_data(df):
     df["employer"] = df["employer"].apply(lambda x: x.get("name") if x is not None else "")
     df["experience"] = df["experience"].apply(lambda x: x.get("name") if x is not None else "")
 
-    #  Меняем тип данных
+    # Меняем тип данных
     df["published_at"] = df["published_at"].astype("datetime64[ns]")
     df["Дата сбора"] = df["Дата сбора"].astype("datetime64[ns]")
     df["id"] = df["id"].astype("int64")
 
-    #  Форматируем таблицу
+    # Форматируем таблицу
     df.columns = ["ID", "Вакансия", "Населённый пункт", "Зарплата от", "Дата публикации", "Наниматель",
                   "Требуемый опыт работы", "Профессия", "Дата сбора данных", "Зарплата до", "Вакантных мест"]
     df = df[["ID", "Профессия", "Вакансия", "Населённый пункт", "Требуемый опыт работы", "Зарплата от",
@@ -158,6 +162,7 @@ def filter_data(df):
 def run_hhru():
     try:
         check_connection()
+        print("HHru: начинаем собирать данные")
         df = get_hhru_data()
         df = filter_data(df)
         return df
@@ -168,5 +173,6 @@ def run_hhru():
 if __name__ == "__main__":
     df_hhru = run_hhru()
     current_date = datetime.now().date()
-    df_hhru.to_excel(f"HHru - {current_date}.xlsx", sheet_name='Sheet1', index=False)
+    path_to_export = os.path.join(os.path.dirname(__file__), '..', '..', 'Data', 'HHru', f"HHru - {current_date}.xlsx")
+    df_hhru.to_excel(path_to_export, sheet_name='Данные', index=False)
 

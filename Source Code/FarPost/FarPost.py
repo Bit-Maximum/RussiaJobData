@@ -1,15 +1,32 @@
-from selenium import webdriver
+import os
 import time
-import json
-from bs4 import BeautifulSoup
+import datetime
 
-from datetime import datetime
+from selenium import webdriver
+from bs4 import BeautifulSoup
+import pandas as pd
+import requests as r
+
 
 # Время выполнения программы: ~1 час
+
+
+def check_connection():
+    print("Подключение к FarPost.ru: ", end="")
+    response = r.get("https://www.farpost.ru/vladivostok/rabota/")
+    if response.status_code == 200:
+        print("OK")
+        return
+    else:
+        print("Ошибка соединения. Сервис HH.ru не доступен.")
+        raise Exception
+
+
 def connect_driver():
-    # Путь к драйверу Chrome
-    driver_path = 'chromedriver.exe'
-    driver = webdriver.Chrome(executable_path=driver_path)
+    # Запуск браузера в фоновом режиме
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless")
+    driver = webdriver.Chrome(options=options)
     return driver
 
 
@@ -27,12 +44,29 @@ def get_url_list():
     return urls
 
 
+def get_city_list():
+    city = ["Арсеньев", "Артем",
+            "Большой Камень", "Владивосток",
+            "Дальнегорск", "Лесозаводск",
+            "Находка", "Партизанск",
+            "Спасск-Дальний", "Уссурийск"]
+    return city
+
+
 def month_int_to_str(month_int):
     month = {
         1: "января", 2: "февраля", 3: "марта", 4: "апреля", 5: "мая", 6: "июня",
         7: "июля", 8: "августа", 9: "сентября", 10: "октября", 11: "ноября", 12: "декабря"
     }
-    return month.get(month_int)
+    return str(month.get(month_int))
+
+
+def month_str_to_int(month_str):
+    month = {
+        "января": 1, "февраля": 2, "марта": 3, "апреля": 4, "мая": 5, "июня": 6,
+        "июля": 7, "августа": 8, "сентября": 9, "октября": 10, "ноября": 11, "декабря": 12
+    }
+    return month.get(month_str)
 
 
 def scroll_to_bottom(driver):  # Функция для прокручивания страницы до конца
@@ -60,89 +94,147 @@ def get_html(driver):  # Функция для получения HTML-кода 
     return html_code
 
 
-def process_data(html_code):
-    current_month = datetime.now().month
-    current_day = datetime.now().day
+def process_data(html_code, city):
     domen = 'https://www.farpost.ru'
     soup = BeautifulSoup(html_code, 'html.parser')
 
-    all_info = soup.find_all(class_="descriptionCell bull-item-content__cell bull-item-content__description-cell js-description-block")
-    city_vacancies = []
+    all_info = soup.find_all(
+        class_="descriptionCell bull-item-content__cell bull-item-content__description-cell js-description-block"
+    )
+    city_vacancies = {
+        "Профессия": [], "Зарплата": [], "Населённый пункт": [], "Наниматель": [],
+        "Ссылка": [], "Дата публикации": [], "Дата сбора данных": []
+    }
 
     for item in all_info:
         title = item.find(class_='bulletinLink bull-item__self-link auto-shy').text
+
         try:
             salary = item.find(class_='price-block__price').text.replace("\xa0", "").replace("–", "-")
         except:
             salary = ""
 
         vacancy_url = domen + item.find(class_='bull-item-content__subject-container').find('a').get('href')
+
         try:
             date = item.find(class_='date').text
             if "вчера" in date:
-                if current_day == 1:  # Костыль 
-                    current_day
-                date = date.replace("вчера", "12 июня")
+                yesterday = datetime.date.today() - datetime.timedelta(days=1)
+                date = date.replace("вчера", f"{yesterday.day} {month_int_to_str(yesterday.month)}")
             elif "сегодня" in date:
-                date = date.replace("сегодня", f"{current_day} {month_int_to_str(current_month)}")
+                today_date = datetime.date.today()
+                date = date.replace("сегодня", f"{today_date.day} {month_int_to_str(today_date.month)}")
             date_parts = date.split(' в ')
             date = date_parts[0]
         except:
-            date = "13 июня"
+            today_date = datetime.date.today()
+            date = f"{today_date.day} {month_int_to_str(today_date.month)}"
 
         try:
             place = item.find(class_='bull-delivery__city').text
         except:
-            place = "Владивосток"
+            place = city
 
         try:
             corporation = item.find(class_='bull-item__annotation-row').text
         except:
             corporation = "Не указана"
 
-        city_vacancies.append(
-            {
-                'Профессия': title,
-                'Зарплата': salary,
-                'Город': place,
-                'Организация': corporation,
-                'Ссылка': vacancy_url,
-                'Дата': date
-            }
-        )
+        city_vacancies["Профессия"].append(title)
+        city_vacancies["Зарплата"].append(salary)
+        city_vacancies["Населённый пункт"].append(place)
+        city_vacancies["Наниматель"].append(corporation)
+        city_vacancies["Ссылка"].append(vacancy_url)
+        city_vacancies["Дата публикации"].append(date)
+        city_vacancies["Дата сбора данных"] = datetime.date.today()
 
-    with open('all_vacansii_list_vl.json', 'w', encoding="utf-8") as file:
-        json.dump(city_vacancies, file, indent=4, ensure_ascii=False)
+    return pd.DataFrame(city_vacancies)
 
 
 def get_farpost_data():
+    print("FarPost: фильтрация собранных данных")
     urls = get_url_list()
-
-    for url in urls:
+    cities = get_city_list()
+    dfs = []  # Список для DataFrame с каждого города
+    for num, url in enumerate(urls):
         driver = connect_driver()
         driver.get(url)
 
         # Ожидаем загрузку страницы
         time.sleep(1)
         driver.maximize_window()
+        city = cities[num]
 
         html_code = get_html(driver)
+        dfs.append(process_data(html_code, city))
+        print(f"FarPost: данные собраны по {num + 1} из {len(urls)} городов")
 
+    total_df = pd.concat(dfs, ignore_index=True)
+    return total_df
+
+
+def filter_data(df):
+    # Получаем ID-вакансий
+    df["Ссылка"] = df["Ссылка"].apply(lambda x: x.split('-')[-1])
+    df["Ссылка"] = df["Ссылка"].apply(lambda x: x.rstrip('.html'))
+
+    # Восстанавливаем недостающие столбцы
+    df["Вакансия"] = df["Профессия"]
+    df["Требуемый опыт работы"] = "Не указан"
+    df["Зарплата до"] = df["Зарплата"]
+    df["Вакантных мест"] = 1
+
+    # Получаем значения атрибутов из "сырых" данных
+    df["Зарплата до"] = df["Зарплата до"].apply(lambda x: x.split('-')[1] if '-' in x else "")
+    df["Зарплата до"] = df["Зарплата до"].apply(lambda x: x.rstrip('₽') if '₽' in x else "")
+    df["Зарплата"] = df["Зарплата"].apply(lambda x: x.rstrip('₽') if '₽' in x else "")
+    df["Зарплата"] = df["Зарплата"].apply(lambda x: x.split('-')[0] if '-' in x else x)
+    df["Зарплата"] = df["Зарплата"].apply(lambda x: x.strip('от ') if 'от ' in x else x)
+    df["Наниматель"] = df["Наниматель"].apply(lambda x: x.split('. Ул')[0] if '. Ул' in x else x)
+    df["Наниматель"] = df["Наниматель"].apply(lambda x: x.split('. Г')[0] if '. Г' in x else x)
+    df["Наниматель"] = df["Наниматель"].apply(lambda x: x.split('. Бух')[0] if '. Бух' in x else x)
+    df["Наниматель"] = df["Наниматель"].apply(lambda x: x.split('. Пер')[0] if '. Пер' in x else x)
+    df["Наниматель"] = df["Наниматель"].apply(lambda x: x.split('. Пр')[0] if '. Пр' in x else x)
+
+    # Форматируем даты
+    df["Дата публикации"] = df["Дата публикации"].apply(lambda x: x.split())
+    dates = df["Дата публикации"].tolist()
+    current_year = int(datetime.date.today().year)
+    filtered_dates = []
+    for date in dates:
+        month = month_str_to_int(date[1])
+        day = int(date[0])
+        filtered_dates.append(datetime.date(current_year, month, day))
+    df["Дата публикации"] = filtered_dates
+
+    # Меняем тип данных
+    df["Ссылка"] = df["Ссылка"].astype("int64")
+    df["Дата публикации"] = df["Дата публикации"].astype("datetime64[ns]")
+    df["Дата сбора данных"] = df["Дата сбора данных"].astype("datetime64[ns]")
+
+    # Форматируем таблицу
+    df.columns = ["Профессия", "Зарплата от", "Населённый пункт", "Наниматель", "ID",
+                  "Дата публикации", "Дата сбора данных", "Вакансия",
+                  "Требуемый опыт работы", "Зарплата до", "Вакантных мест"]
+    df = df[["ID", "Профессия", "Вакансия", "Населённый пункт", "Требуемый опыт работы", "Зарплата от",
+             "Зарплата до", "Дата публикации", "Дата сбора данных", "Наниматель", "Вакантных мест"]]
     return df
 
 
 def run_farpost():
-    driver = connect_driver()
-    return -1
+    try:
+        check_connection()
+        df = get_farpost_data()
+        df = filter_data(df)
+        return df
+    except Exception:
+        print("FarPost - произошла ошибка. Сбор данных с источника остановлен.")
 
 
+if __name__ == "__main__":
+    df_farpost = run_farpost()
+    print("FarPost: начинаем собирать данные")
+    today_date = datetime.date.today()
+    path_to_export = os.path.join(os.path.dirname(__file__), '..', '..', 'Data', 'FarPost', f"FarPost - {today_date}.xlsx")
+    df_farpost.to_excel(path_to_export, sheet_name='Данные', index=False)
 
-
-
-
-def main():
-    # get_data('https://www.farpost.ru/vladivostok/rabota/vacansii/')
-    process_data()
-
-# Вызываем функцию main для запуска скрипта
-main()
