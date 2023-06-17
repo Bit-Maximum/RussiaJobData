@@ -1,25 +1,30 @@
 import os
-import time
 import datetime
 
 from selenium import webdriver
 from bs4 import BeautifulSoup
 import pandas as pd
-import requests as r
+
+import asyncio
+from aiohttp import ClientSession
 
 
 # Время выполнения программы: ~1 час
 
+SEC_WAIT_TO_SCROLL = 3
+SEC_WAIT_TO_LOAD_PAGE = 1
 
-def check_connection():
-    print("Подключение к FarPost.ru: ", end="")
-    response = r.get("https://www.farpost.ru/vladivostok/rabota/")
-    if response.status_code == 200:
-        print("OK")
-        return
-    else:
-        print("Ошибка соединения. Сервис FarPost.ru не доступен.")
-        raise Exception
+async def check_connection():
+    async with ClientSession() as session:
+        print("Подключение к FarPost.ru: ", end="")
+        url = 'https://www.farpost.ru/vladivostok/rabota/'
+        async with session.get(url=url) as response:
+            if response.status == 200:
+                print("OK")
+                return
+            else:
+                print("Ошибка соединения. Сервис FarPost.ru не доступен.")
+                raise Exception
 
 
 def connect_driver():
@@ -30,6 +35,7 @@ def connect_driver():
     return driver
 
 
+# Ссылки должны идти в том же порядке, что и список городов
 def get_url_list():
     urls = ["https://www.farpost.ru/arsenev/rabota/vacansii/",
             "https://www.farpost.ru/artem/rabota/vacansii/",
@@ -44,6 +50,7 @@ def get_url_list():
     return urls
 
 
+# Города должны идти в том же порядке, что и список ссылок
 def get_city_list():
     city = ["Арсеньев", "Артем",
             "Большой Камень", "Владивосток",
@@ -69,13 +76,13 @@ def month_str_to_int(month_str):
     return month.get(month_str)
 
 
-def scroll_to_bottom(driver):  # Функция для прокручивания страницы до конца
+async def scroll_to_bottom(driver):  # Функция для прокручивания страницы до конца
     last_height = driver.execute_script("return document.body.scrollHeight")
     while True:
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
         # Ожидаем некоторое время для загрузки данных
-        time.sleep(3)
+        await asyncio.sleep(SEC_WAIT_TO_SCROLL)
 
         # Проверяем, достигнут ли конец страницы
         new_height = driver.execute_script("return document.body.scrollHeight")
@@ -85,8 +92,8 @@ def scroll_to_bottom(driver):  # Функция для прокручивани�
     return
 
 
-def get_html(driver):  # Функция для получения HTML-кода всей страницы
-    scroll_to_bottom(driver)
+async def get_html(driver):  # Функция для получения HTML-кода всей страницы
+    await scroll_to_bottom(driver)
     html_code = driver.page_source
 
     # Закрываем браузер
@@ -151,7 +158,7 @@ def process_data(html_code, city):
     return pd.DataFrame(city_vacancies)
 
 
-def get_farpost_data():
+async def get_farpost_data():
     print("FarPost: фильтрация собранных данных")
     urls = get_url_list()
     cities = get_city_list()
@@ -161,11 +168,11 @@ def get_farpost_data():
         driver.get(url)
 
         # Ожидаем загрузку страницы
-        time.sleep(1)
+        await asyncio.sleep(SEC_WAIT_TO_LOAD_PAGE)
         driver.maximize_window()
         city = cities[num]
 
-        html_code = get_html(driver)
+        html_code = await get_html(driver)
         dfs.append(process_data(html_code, city))
         print(f"FarPost: данные собраны по {num + 1} из {len(urls)} городов")
 
@@ -221,24 +228,29 @@ def filter_data(df):
     return df
 
 
-def run_farpost():
+async def run_farpost():
     try:
-        check_connection()
+        await check_connection()
         print("FarPost: начинаем собирать данные")
-        df = get_farpost_data()
+        df = await get_farpost_data()
         df = filter_data(df)
         return df
     except Exception:
         print("FarPost: произошла ошибка. Сбор данных с источника остановлен.")
 
 
-def collect_to_excel():
-    df_farpost = run_farpost()
+async def collect_to_excel():
+    df_farpost = await run_farpost()
     today_date = datetime.date.today()
     path_to_export = os.path.join(os.path.dirname(__file__), '..', '..', 'Data', 'FarPost',
                                   f"FarPost - {today_date}.xlsx")
     df_farpost.to_excel(path_to_export, sheet_name='Данные', index=False)
 
 
+async def main():
+    task = asyncio.create_task(collect_to_excel())
+    await task
+
+
 if __name__ == "__main__":
-    collect_to_excel()
+    asyncio.run(main())

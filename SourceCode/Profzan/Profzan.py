@@ -1,49 +1,51 @@
 import os
 import datetime
 
-import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+import requests
 
-#Для валидации URL-адреса
+import asyncio
+from aiohttp import ClientSession
+
+# Для валидации URL-адреса
 import urllib3
 
 
-# Время исполнения программы: ~5 мин
-def check_connection():
-    print("Подключение к profzan.primorsky.ru: ", end="")
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+# Время исполнения программы: ~30 сек
+async def check_connection():
+    async with ClientSession() as session:
+        print("Подключение к profzan.primorsky.ru: ", end="")
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        url = 'https://profzan.primorsky.ru/vacancy/'
+        response = requests.get(url=url, verify=False)
+        if response.status_code == 200:
+            print("OK")
+            return
+        else:
+            print("Ошибка соединения. Сервис profzan.primorsky.ru не доступен.")
+            raise Exception
 
-    response = requests.get(url="https://profzan.primorsky.ru/vacancy/", verify=False)
-    print(response.status_code)
-    if response.status_code == 200:
-        print("OK")
-        return
-    else:
-        print("Ошибка соединения. Сервис profzan.primorsky.ru не доступен.")
-        raise Exception
 
-
-
-def get_html():
+async def get_html():
     items_on_page = 20000  # Должно быть больше суммарного числа объявлений на сайте
 
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    url = "https://profzan.primorsky.ru/vacancy/"
-    params = {
-        "SearchType": 1,
-        "Region": 25,
-        "Sort": 1,
-        "PageSize": items_on_page,
-        "Grid-page": 1
-    }
+    async with ClientSession() as session:
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        url = 'https://profzan.primorsky.ru/vacancy/'
+        params = {
+            "SearchType": 1,
+            "Region": 25,
+            "Sort": 1,
+            "PageSize": items_on_page,
+            "Grid-page": 1
+        }
+        response = requests.get(url=url, params=params, verify=False)
+        return response.text
 
-    response = requests.get(url, verify=False, params=params)
-    return response.text
 
-
-def get_profzan_data():
-    html = get_html()
+async def get_profzan_data():
+    html = await get_html()
     soup = BeautifulSoup(html, 'lxml')
 
     name = []
@@ -130,24 +132,29 @@ def filter_data(df):
     return df
 
 
-def run_profzan():
+async def run_profzan():
     try:
-        check_connection()
+        await check_connection()
         print("Центр занятости: начинаем собирать данные")
-        df = get_profzan_data()
+        df = await get_profzan_data()
         df = filter_data(df)
         return df
     except Exception:
         print("Центр занятости: произошла ошибка. Сбор данных с источника остановлен.")
 
 
-def collect_to_excel():
-    df_profzan = run_profzan()
+async def collect_to_excel():
+    df_profzan = await run_profzan()
     today_date = datetime.date.today()
     path_to_export = os.path.join(os.path.dirname(__file__), '..', '..', 'Data', 'Центр занятости',
                                   f"Центр занятости - {today_date}.xlsx")
     df_profzan.to_excel(path_to_export, sheet_name='Данные', index=False)
 
 
+async def main():
+    task = asyncio.create_task(collect_to_excel())
+    await task
+
+
 if __name__ == "__main__":
-    collect_to_excel()
+    asyncio.run(main())
