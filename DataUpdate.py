@@ -40,9 +40,9 @@ def get_recent_data():
     if os.path.exists(xlsx_path):
         df_recent = pd.DataFrame.read_excel(xlsx_path, sheet_name="Данные")
     else:
-        df_recent = pd.DataFrame(columns=["ID", "Профессия", "Вакансия", "Населённый пункт", "Требуемый опыт работы",
-                                          "Зарплата от", "Зарплата до", "Дата публикации", "Дата сбора данных",
-                                          "Наниматель", "Вакантных мест"])
+        df_recent = pd.DataFrame(columns=["Источник", "ID", "Профессия", "Вакансия", "Населённый пункт",
+                                          "Требуемый опыт работы", "Зарплата от", "Зарплата до", "Дата публикации",
+                                          "Дата сбора данных", "Наниматель", "Вакантных мест"])
     return df_recent
 
 
@@ -53,12 +53,14 @@ async def collect_data():
         return "NoActivTasks"
 
     new_data = await asyncio.gather(*tasks)
-    dfs = [get_recent_data]
+    dfs = [get_recent_data()]
     dfs.extend(new_data)
     total_df = pd.concat(dfs, ignore_index=True)
+    total_df.drop_duplicates(subset=["ID"])
 
     xlsx_path = get_path_to_data()
-    total_df.to_excel(xlsx_path, sheet_name="Данные")
+    total_df.to_excel(xlsx_path, sheet_name="Данные", index=False)
+    print("Новые данные добавлены в файл 'Вакансии в Приморском крае.xlsx'")
 
 
 def update_data():

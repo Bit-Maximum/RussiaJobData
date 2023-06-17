@@ -3,9 +3,12 @@ from datetime import datetime
 import json
 
 import pandas as pd
+import requests
 
 import asyncio
 from aiohttp import ClientSession
+
+from SourceCode.HHru.profs import get_profs
 
 
 # Пауза между запросами на API: TIME_OUT - в рамках одной вакансии, REGION_TIME_OUT - при смене региона/профессии
@@ -14,23 +17,22 @@ REGION_TIME_OUT = 1.5
 
 
 # Время выполнения программы: ~2 часа
-async def check_connection():
-    async with ClientSession() as session:
-        print("Подключение к HH.ru: ", end="")
-        url = 'https://api.hh.ru/vacancies'
-        params = {
-            "text": "Менеджер",
-            "per_page": 1,
-            "search_field": ["name", "description"]
-        }
+def check_connection():
+    print("Подключение к HH.ru: ", end="")
+    url = 'https://api.hh.ru/vacancies'
+    params = {
+        "text": "Менеджер",
+        "per_page": 1,
+        "search_field": ["name", "description"]
+    }
 
-        async with session.get(url=url, params=params) as response:
-            if response.status == 200:
-                print("OK")
-                return
-            else:
-                print("Ошибка соединения. Сервис HH.ru не доступен.")
-                raise Exception
+    response = requests.get(url=url, params=params)
+    if response.status_code == 200:
+        print("OK")
+        return
+    else:
+        print("Ошибка соединения. Сервис HH.ru не доступен.")
+        raise Exception
 
 
 async def get_region_city_id():
@@ -94,9 +96,10 @@ async def get_vacancies(vacancy, area):
     return js_objs
 
 
-async def get_profs():
+# Можете использовать свой собственный список профессий
+def get_profs_from_file(path):
     profs = []
-    with open("profs.txt", "r", encoding="UTF-8") as file:
+    with open(path, "r", encoding="UTF-8") as file:
         for line in file.readlines():
             profs.append(line.rstrip("\n"))
     return profs
@@ -104,14 +107,15 @@ async def get_profs():
 
 async def get_hhru_data():
     current_date = datetime.now().date()
-    profs = await get_profs()
+    profs = get_profs()
+
     reg_city_ids = await get_region_city_id()
     prim_id = 1948
     dfs = []
     total_profs = len(profs)
 
     for num, prof in enumerate(profs):
-        if num % 2 == 0:
+        if num % 50 == 0:
             print(f"HH.ru: получено {num} из {total_profs} профессий")
         total_found = await get_count(prof, prim_id)
         if total_found > 0:
@@ -149,9 +153,12 @@ def filter_data(df):
                   'working_time_modes', 'accept_temporary', 'professional_roles',
                   'accept_incomplete_resumes', 'employment'], axis=1)
 
-    # Получаем значения атрибутов из "сырых" данных
+    # Восстанавливаем недостающие столбцы
     df["Вакантных мест"] = 1
     df["Зарплата до"] = df["salary"]
+    df["Источник"] = "HH.ru"
+
+    # Получаем значения атрибутов из "сырых" данных
     df["area"] = df["area"].apply(lambda x: x.get("name") if x is not None else "")
     df["Зарплата до"] = df["Зарплата до"].apply(lambda x: x.get("to") if x is not None else "")
     df["salary"] = df["salary"].apply(lambda x: x.get("from") if x is not None else "")
@@ -162,19 +169,18 @@ def filter_data(df):
     # Меняем тип данных
     df["published_at"] = df["published_at"].astype("datetime64[ns]")
     df["Дата сбора"] = df["Дата сбора"].astype("datetime64[ns]")
-    df["id"] = df["id"].astype("int64")
 
     # Форматируем таблицу
     df.columns = ["ID", "Вакансия", "Населённый пункт", "Зарплата от", "Дата публикации", "Наниматель",
-                  "Требуемый опыт работы", "Профессия", "Дата сбора данных", "Вакантных мест", "Зарплата до"]
-    df = df[["ID", "Профессия", "Вакансия", "Населённый пункт", "Требуемый опыт работы", "Зарплата от",
+                  "Требуемый опыт работы", "Профессия", "Дата сбора данных", "Вакантных мест", "Зарплата до", "Источник"]
+    df = df[["Источник", "ID", "Профессия", "Вакансия", "Населённый пункт", "Требуемый опыт работы", "Зарплата от",
              "Зарплата до", "Дата публикации", "Дата сбора данных", "Наниматель", "Вакантных мест"]]
     return df
 
 
 async def run_hhru():
     try:
-        await check_connection()
+        check_connection()
         print("HHru: начинаем собирать данные")
         df = await get_hhru_data()
         df = filter_data(df)

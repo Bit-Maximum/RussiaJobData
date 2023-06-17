@@ -4,9 +4,9 @@ import datetime
 from selenium import webdriver
 from bs4 import BeautifulSoup
 import pandas as pd
+import requests
 
 import asyncio
-from aiohttp import ClientSession
 
 
 # Время выполнения программы: ~1 час
@@ -14,17 +14,17 @@ from aiohttp import ClientSession
 SEC_WAIT_TO_SCROLL = 3
 SEC_WAIT_TO_LOAD_PAGE = 1
 
-async def check_connection():
-    async with ClientSession() as session:
-        print("Подключение к FarPost.ru: ", end="")
-        url = 'https://www.farpost.ru/vladivostok/rabota/'
-        async with session.get(url=url) as response:
-            if response.status == 200:
-                print("OK")
-                return
-            else:
-                print("Ошибка соединения. Сервис FarPost.ru не доступен.")
-                raise Exception
+
+def check_connection():
+    print("Подключение к FarPost.ru: ", end="")
+    url = 'https://www.farpost.ru/vladivostok/rabota/'
+    response = requests.get(url=url)
+    if response.status_code == 200:
+        print("OK")
+        return
+    else:
+        print("Ошибка соединения. Сервис FarPost.ru не доступен.")
+        raise Exception
 
 
 def connect_driver():
@@ -190,6 +190,7 @@ def filter_data(df):
     df["Требуемый опыт работы"] = "Не указан"
     df["Зарплата до"] = df["Зарплата"]
     df["Вакантных мест"] = 1
+    df["Источник"] = "FarPost"
 
     # Получаем значения атрибутов из "сырых" данных
     df["Зарплата до"] = df["Зарплата до"].apply(lambda x: x.split('-')[1] if '-' in x else "")
@@ -215,22 +216,21 @@ def filter_data(df):
     df["Дата публикации"] = filtered_dates
 
     # Меняем тип данных
-    df["Ссылка"] = df["Ссылка"].astype("int64")
     df["Дата публикации"] = df["Дата публикации"].astype("datetime64[ns]")
     df["Дата сбора данных"] = df["Дата сбора данных"].astype("datetime64[ns]")
 
     # Форматируем таблицу
     df.columns = ["Профессия", "Зарплата от", "Населённый пункт", "Наниматель", "ID",
                   "Дата публикации", "Дата сбора данных", "Вакансия",
-                  "Требуемый опыт работы", "Зарплата до", "Вакантных мест"]
-    df = df[["ID", "Профессия", "Вакансия", "Населённый пункт", "Требуемый опыт работы", "Зарплата от",
+                  "Требуемый опыт работы", "Зарплата до", "Вакантных мест", "Источник"]
+    df = df[["Источник", "ID", "Профессия", "Вакансия", "Населённый пункт", "Требуемый опыт работы", "Зарплата от",
              "Зарплата до", "Дата публикации", "Дата сбора данных", "Наниматель", "Вакантных мест"]]
     return df
 
 
 async def run_farpost():
     try:
-        await check_connection()
+        check_connection()
         print("FarPost: начинаем собирать данные")
         df = await get_farpost_data()
         df = filter_data(df)

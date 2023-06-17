@@ -13,18 +13,17 @@ import urllib3
 
 
 # Время исполнения программы: ~30 сек
-async def check_connection():
-    async with ClientSession() as session:
-        print("Подключение к profzan.primorsky.ru: ", end="")
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        url = 'https://profzan.primorsky.ru/vacancy/'
-        response = requests.get(url=url, verify=False)
-        if response.status_code == 200:
-            print("OK")
-            return
-        else:
-            print("Ошибка соединения. Сервис profzan.primorsky.ru не доступен.")
-            raise Exception
+def check_connection():
+    print("Подключение к profzan.primorsky.ru: ", end="")
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    url = 'https://profzan.primorsky.ru/vacancy/'
+    response = requests.get(url=url, verify=False)
+    if response.status_code == 200:
+        print("OK")
+        return
+    else:
+        print("Ошибка соединения. Сервис profzan.primorsky.ru не доступен.")
+        raise Exception
 
 
 async def get_html():
@@ -100,6 +99,7 @@ def filter_data(df):
     df["Вакансия"] = df["Профессия"]
     df["Зарплата до"] = df["Зарплата"]
     df["Требуемый опыт работы"] = "Не указан"
+    df["Источник"] = "Центр занятости Приморского края"
 
     # Получаем значения атрибутов из "сырых" данных
     df["Ссылка"] = df["Ссылка"].apply(lambda x: x.split('detail/')[1] if 'detail/' in x else x)
@@ -126,15 +126,15 @@ def filter_data(df):
 
     # Форматируем таблицу
     df.columns = ["Профессия", "Зарплата от", "Населённый пункт", "Наниматель", "Дата публикации",
-                  "Вакантных мест", "ID", "Дата сбора данных", "Вакансия", "Зарплата до", "Требуемый опыт работы"]
-    df = df[["ID", "Профессия", "Вакансия", "Населённый пункт", "Требуемый опыт работы", "Зарплата от",
+                  "Вакантных мест", "ID", "Дата сбора данных", "Вакансия", "Зарплата до", "Требуемый опыт работы", "Источник"]
+    df = df[["Источник", "ID", "Профессия", "Вакансия", "Населённый пункт", "Требуемый опыт работы", "Зарплата от",
              "Зарплата до", "Дата публикации", "Дата сбора данных", "Наниматель", "Вакантных мест"]]
     return df
 
 
 async def run_profzan():
     try:
-        await check_connection()
+        check_connection()
         print("Центр занятости: начинаем собирать данные")
         df = await get_profzan_data()
         df = filter_data(df)
