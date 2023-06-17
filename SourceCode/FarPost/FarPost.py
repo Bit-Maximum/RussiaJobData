@@ -47,16 +47,14 @@ def get_url_list():
             "https://www.farpost.ru/partizansk/rabota/vacansii/",
             "https://www.farpost.ru/spassk-dalnii/rabota/vacansii/",
             "https://www.farpost.ru/ussuriisk/rabota/vacansii/"]
+
+    urls = ["https://www.farpost.ru/arsenev/rabota/vacansii/"]
     return urls
 
 
 # Города должны идти в том же порядке, что и список ссылок
 def get_city_list():
-    city = ["Арсеньев", "Артем",
-            "Большой Камень", "Владивосток",
-            "Дальнегорск", "Лесозаводск",
-            "Находка", "Партизанск",
-            "Спасск-Дальний", "Уссурийск"]
+    city = ["Арсеньев"]
     return city
 
 

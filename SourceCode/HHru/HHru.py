@@ -109,6 +109,8 @@ async def get_hhru_data():
     current_date = datetime.now().date()
     profs = get_profs()
 
+    profs = ["Автомойщик"]
+
     reg_city_ids = await get_region_city_id()
     prim_id = 1948
     dfs = []

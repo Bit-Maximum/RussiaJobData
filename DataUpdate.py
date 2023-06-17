@@ -7,6 +7,8 @@ from SourceCode.HHru import HHru
 from SourceCode.FarPost import FarPost
 from SourceCode.Profzan import Profzan
 
+from SourceCode.Errors.ErrorMassages import FORMAT_ERROR
+
 import asyncio
 
 
@@ -32,7 +34,7 @@ def set_tasks():
 
 
 def get_path_to_data():
-    return os.path.join(os.path.dirname(__file__), "Вакансии в Приморском крае.xlsx")
+    return os.path.join(os.path.abspath(os.curdir), "Вакансии в Приморском крае.xlsx")
 
 
 def get_recent_data():
@@ -55,12 +57,15 @@ async def collect_data():
     new_data = await asyncio.gather(*tasks)
     dfs = [get_recent_data()]
     dfs.extend(new_data)
-    total_df = pd.concat(dfs, ignore_index=True)
-    total_df.drop_duplicates(subset=["ID"])
-
-    xlsx_path = get_path_to_data()
-    total_df.to_excel(xlsx_path, sheet_name="Данные", index=False)
-    print("Новые данные добавлены в файл 'Вакансии в Приморском крае.xlsx'")
+    try:
+        total_df = pd.concat(dfs, ignore_index=True)
+        total_df.drop_duplicates(subset=["ID"])
+        export_path = get_path_to_data()
+        total_df.to_excel(export_path, sheet_name="Данные", index=False)
+        print(f"Новые данные добавлены в файл '{export_path}'")
+        wait = input()
+    except:
+        print(FORMAT_ERROR)
 
 
 def update_data():
