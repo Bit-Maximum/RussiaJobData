@@ -47,14 +47,16 @@ def get_url_list():
             "https://www.farpost.ru/partizansk/rabota/vacansii/",
             "https://www.farpost.ru/spassk-dalnii/rabota/vacansii/",
             "https://www.farpost.ru/ussuriisk/rabota/vacansii/"]
-
-    urls = ["https://www.farpost.ru/arsenev/rabota/vacansii/"]
     return urls
 
 
 # Города должны идти в том же порядке, что и список ссылок
 def get_city_list():
-    city = ["Арсеньев"]
+    city = ["Арсеньев", "Артем",
+            "Большой Камень", "Владивосток",
+            "Дальнегорск", "Лесозаводск",
+            "Находка", "Партизанск",
+            "Спасск-Дальний", "Уссурийск"]
     return city
 
 
@@ -182,6 +184,9 @@ def filter_data(df):
     # Получаем ID-вакансий
     df["Ссылка"] = df["Ссылка"].apply(lambda x: x.split('-')[-1])
     df["Ссылка"] = df["Ссылка"].apply(lambda x: x.rstrip('.html'))
+
+    # Удаление дубликатов
+    df = df.drop_duplicates(subset=["Ссылка"], keep="first", inplace=False)
 
     # Восстанавливаем недостающие столбцы
     df["Вакансия"] = df["Профессия"]

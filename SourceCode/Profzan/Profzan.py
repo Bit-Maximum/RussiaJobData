@@ -93,7 +93,7 @@ async def get_profzan_data():
 
 def filter_data(df):
     # Удаление дубликатов
-    df = df.drop_duplicates(subset=["Ссылка"])
+    df = df.drop_duplicates(subset=["Ссылка"], keep="first", inplace=False)
 
     # Восстанавливаем недостающие столбцы
     df["Вакансия"] = df["Профессия"]

@@ -109,8 +109,6 @@ async def get_hhru_data():
     current_date = datetime.now().date()
     profs = get_profs()
 
-    profs = ["Автомойщик"]
-
     reg_city_ids = await get_region_city_id()
     prim_id = 1948
     dfs = []
@@ -147,7 +145,7 @@ async def get_hhru_data():
 
 def filter_data(df):
     # Удаление лишних данных
-    df = df.drop_duplicates(subset=["id"])
+    df = df.drop_duplicates(subset=["id"], keep="first", inplace=False)
     df = df.drop(['premium', 'department', "has_test", "response_letter_required", "type", 'address', 'response_url',
                   'sort_point_distance', 'created_at', 'archived', 'apply_alternate_url', 'insider_interview', 'url',
                   'adv_response_url', 'alternate_url', 'relations', 'snippet',
