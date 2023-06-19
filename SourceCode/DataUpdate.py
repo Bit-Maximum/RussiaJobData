@@ -34,7 +34,7 @@ def set_tasks():
 
 
 def get_path_to_data():
-    return os.path.join(os.path.abspath(os.curdir), "Вакансии в Приморском крае.xlsx")
+    return os.path.join(os.path.abspath(os.curdir), "../Exe/Вакансии в Приморском крае.xlsx")
 
 
 def get_recent_data():
