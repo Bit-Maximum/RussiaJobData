@@ -37,6 +37,7 @@ def connect_driver():
 
 # Ссылки должны идти в том же порядке, что и список городов
 def get_url_list():
+
     urls = ["https://www.farpost.ru/vladivostok/rabota/vacansii/",
             "https://www.farpost.ru/arsenev/rabota/vacansii/",
             "https://www.farpost.ru/artem/rabota/vacansii/",

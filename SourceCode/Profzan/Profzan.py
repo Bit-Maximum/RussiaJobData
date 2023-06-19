@@ -134,21 +134,17 @@ def filter_data(df):
 
 
 async def run_profzan():
-    try:
-        check_connection()
-        print("Центр занятости: начинаем собирать данные")
-        df = await get_profzan_data()
-        df = filter_data(df)
-        return df
-    except Exception:
-        print("Центр занятости: произошла ошибка. Сбор данных с источника остановлен.")
+    check_connection()
+    print("Центр занятости: начинаем собирать данные")
+    df = await get_profzan_data()
+    df = filter_data(df)
+    return df
 
 
 async def collect_to_excel():
     df_profzan = await run_profzan()
     today_date = datetime.date.today()
-    path_to_export = os.path.join(os.path.dirname(__file__), '..', '..', 'Data', 'Центр занятости',
-                                  f"Центр занятости - {today_date}.xlsx")
+    path_to_export = os.path.join(os.path.abspath(os.curdir), f"Центр занятости - {today_date}.xlsx")
     df_profzan.to_excel(path_to_export, sheet_name='Данные', index=False)
 
 
