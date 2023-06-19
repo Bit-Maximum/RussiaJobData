@@ -1,6 +1,17 @@
 # Аналих рынка труда в Приморском крае
 
-Команды для работы с GitHub:
+## Для работы необходимы:
+1. pandas
+2. requests
+3. selenium (Только для FarPost.ru)
+4. lxml
+5. openpyxl
+6. BeautifulSoup
+7. asyncio
+8. aiohttp
+9. urllib3
+
+## Команды для работы с GitHub:
 
 1) "git pull" - Зарузить все изменения с GitHub. Используй всегда перед началом работы.
 
