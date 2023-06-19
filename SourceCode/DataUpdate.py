@@ -58,16 +58,14 @@ async def collect_data(drop_duplicates=True):
     new_data = await asyncio.gather(*tasks)
     dfs = [get_recent_data()]
     dfs.extend(new_data)
-    try:
-        total_df = pd.concat(dfs, ignore_index=True)
-        if drop_duplicates:  # По умолчанию повторяющиеся строки удаляются
-            total_df = total_df.drop_duplicates(subset=["ID"], keep="first", inplace=False)
-        export_path = get_path_to_data()
-        total_df.to_excel(export_path, sheet_name="Данные", index=False)
-        print(f"Новые данные добавлены в файл '{export_path}'")
-        wait = input("Для завершения программы нажмите 'Enter': ")
-    except:
-        print(FORMAT_ERROR)
+
+    total_df = pd.concat(dfs, ignore_index=True)
+    if drop_duplicates:  # По умолчанию повторяющиеся строки удаляются
+        total_df = total_df.drop_duplicates(subset=["ID"], keep="first", inplace=False)
+    export_path = get_path_to_data()
+    total_df.to_excel(export_path, sheet_name="Данные", index=False)
+    print(f"Новые данные добавлены в файл '{export_path}'")
+    wait = input("Для завершения программы нажмите 'Enter': ")
 
 
 def update_data(drop_duplicates=True):

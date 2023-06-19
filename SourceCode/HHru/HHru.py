@@ -12,8 +12,8 @@ from SourceCode.HHru.profs import get_profs
 
 
 # Пауза между запросами на API: TIME_OUT - в рамках одной вакансии, REGION_TIME_OUT - при смене региона/профессии
-TIME_OUT = 1
-REGION_TIME_OUT = 1.5
+TIME_OUT = 2.5
+REGION_TIME_OUT = 3
 
 
 # Время выполнения программы: ~2 часа
@@ -35,21 +35,32 @@ def check_connection():
         raise Exception
 
 
-async def get_region_city_id():
+async def get_city_id():
     async with ClientSession() as session:
         url = 'https://api.hh.ru/areas'
         async with session.get(url=url) as resp:
             js = await resp.json()
             regions_js = js[0]["areas"]
 
-            regions = dict()
-            for region in regions_js:
-                cities = dict()
-                for city in region["areas"]:
-                    cities[city.get("name")] = city.get("id")
-                regions[region.get("name")] = (region.get("id"), cities)
+            for reg in regions_js:
+                if reg.get("name") == "Приморский край":
+                    prim = reg.get("areas")
+                    break
 
-            return regions
+            cities = {}
+            top = ["Владивосток", "Артём", "Находка", "Уссурийск", "Арсеньев", "Большой Камень",
+                   "Фокино (Приморский край)", "Спаск-Дальний", "Партизанск", "Лесозаводск", "Дальнегорск",
+                   "Дальнереченск"]
+
+            for city in prim:
+                if city.get("name") in top:
+                    cities[city.get("name")] = city.get("id")
+
+            for city in prim:
+                if city.get("name") not in top:
+                    cities[city.get("name")] = city.get("id")
+
+            return cities
 
 
 async def get_page(vacancy: str, area=22, page=0):
@@ -109,18 +120,18 @@ async def get_hhru_data():
     current_date = datetime.now().date()
     profs = get_profs()
 
-    reg_city_ids = await get_region_city_id()
+    city_ids = await get_city_id()
     prim_id = 1948
     dfs = []
     total_profs = len(profs)
 
     for num, prof in enumerate(profs):
-        if num % 50 == 0:
+        if num % 10 == 0:
             print(f"HH.ru: получено {num} из {total_profs} профессий")
         total_found = await get_count(prof, prim_id)
         if total_found > 0:
             if total_found > 2000:  # Если нельзя получить все объявления в Приморье сразу, то смотрим по каждому городу
-                for city, city_id in reg_city_ids["Приморский край"][1].items():
+                for city, city_id in city_ids.items():
                     found = await get_count(prof, city_id)
 
                     if found > 0:
@@ -144,14 +155,39 @@ async def get_hhru_data():
 
 
 def filter_data(df):
+    # Отключаем предупреждения
+    pd.options.mode.chained_assignment = None  # default='warn'
+
     # Удаление лишних данных
     df = df.drop_duplicates(subset=["id"], keep="first", inplace=False)
-    df = df.drop(['premium', 'department', "has_test", "response_letter_required", "type", 'address', 'response_url',
-                  'sort_point_distance', 'created_at', 'archived', 'apply_alternate_url', 'insider_interview', 'url',
-                  'adv_response_url', 'alternate_url', 'relations', 'snippet',
-                  'contacts', 'schedule', 'working_days', 'working_time_intervals',
-                  'working_time_modes', 'accept_temporary', 'professional_roles',
-                  'accept_incomplete_resumes', 'employment'], axis=1)
+    try:
+        df = df.drop(['premium', 'department', 'has_test',
+                      'response_letter_required', 'type', 'address',
+                      'response_url', 'sort_point_distance', 'created_at',
+                      'archived', 'apply_alternate_url', 'insider_interview', 'url',
+                      'adv_response_url', 'alternate_url', 'relations', 'snippet',
+                      'contacts', 'schedule', 'working_days', 'working_time_intervals',
+                      'working_time_modes', 'accept_temporary', 'professional_roles',
+                      'accept_incomplete_resumes', 'employment', 'immediate_redirect_url',
+                      'immediate_redirect_vacancy_id'], axis=1)
+    except:
+        try:
+            df = df.drop(
+                ['premium', 'department', "has_test", "response_letter_required", "type", 'address', 'response_url',
+                 'sort_point_distance', 'created_at', 'archived', 'apply_alternate_url', 'insider_interview', 'url',
+                 'adv_response_url', 'alternate_url', 'relations', 'snippet',
+                 'contacts', 'schedule', 'working_days', 'working_time_intervals',
+                 'working_time_modes', 'accept_temporary', 'professional_roles',
+                 'accept_incomplete_resumes', 'employment', "immediate_redirect_url"], axis=1)
+        except:
+            df = df.drop(['premium', 'department', 'has_test',
+                          'response_letter_required', 'type', 'address',
+                          'response_url', 'sort_point_distance', 'created_at',
+                          'archived', 'apply_alternate_url', 'insider_interview', 'url',
+                          'adv_response_url', 'alternate_url', 'relations', 'snippet',
+                          'contacts', 'schedule', 'working_days', 'working_time_intervals',
+                          'working_time_modes', 'accept_temporary', 'professional_roles',
+                          'accept_incomplete_resumes', 'employment'], axis=1)
 
     # Восстанавливаем недостающие столбцы
     df["Вакантных мест"] = 1
@@ -173,26 +209,26 @@ def filter_data(df):
     # Форматируем таблицу
     df.columns = ["ID", "Вакансия", "Населённый пункт", "Зарплата от", "Дата публикации", "Наниматель",
                   "Требуемый опыт работы", "Профессия", "Дата сбора данных", "Вакантных мест", "Зарплата до", "Источник"]
+
     df = df[["Источник", "ID", "Профессия", "Вакансия", "Населённый пункт", "Требуемый опыт работы", "Зарплата от",
              "Зарплата до", "Дата публикации", "Дата сбора данных", "Наниматель", "Вакантных мест"]]
     return df
 
 
 async def run_hhru():
-    try:
-        check_connection()
-        print("HHru: начинаем собирать данные")
-        df = await get_hhru_data()
-        df = filter_data(df)
-        return df
-    except Exception:
-        print("HHru: произошла ошибка. Сбор данных с источника остановлен.")
+    check_connection()
+    print("HHru: начинаем собирать данные")
+    df = await get_hhru_data()
+    print("HHru: фильтрация данных")
+    df = filter_data(df)
+    print("HHru: собор данных завершён")
+    return df
 
 
 async def collect_to_excel():
     df_hhru = await run_hhru()
     current_date = datetime.now().date()
-    path_to_export = os.path.join(os.path.dirname(__file__), '..', '..', 'Data', 'HHru', f"HHru - {current_date}.xlsx")
+    path_to_export = os.path.join(os.path.dirname(__file__), f"HHru - {current_date}.xlsx")
     df_hhru.to_excel(path_to_export, sheet_name='Данные', index=False)
 
 

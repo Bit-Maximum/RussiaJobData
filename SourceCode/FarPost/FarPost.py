@@ -8,11 +8,11 @@ import requests
 
 import asyncio
 
-
 # Время выполнения программы: ~1 час
 
 SEC_WAIT_TO_SCROLL = 3
-SEC_WAIT_TO_LOAD_PAGE = 1
+SEC_WAIT_TO_LOAD_PAGE = 2
+SEC_WAIT_CAPCHA = 60
 
 
 def check_connection():
@@ -30,17 +30,17 @@ def check_connection():
 def connect_driver():
     # Запуск браузера в фоновом режиме
     options = webdriver.ChromeOptions()
-    options.add_argument("--headless")
+   # options.add_argument("--headless")
     driver = webdriver.Chrome(options=options)
     return driver
 
 
 # Ссылки должны идти в том же порядке, что и список городов
 def get_url_list():
-    urls = ["https://www.farpost.ru/arsenev/rabota/vacansii/",
+    urls = ["https://www.farpost.ru/vladivostok/rabota/vacansii/",
+            "https://www.farpost.ru/arsenev/rabota/vacansii/",
             "https://www.farpost.ru/artem/rabota/vacansii/",
             "https://www.farpost.ru/bolshoi-kamen/rabota/vacansii/",
-            "https://www.farpost.ru/vladivostok/rabota/vacansii/",
             "https://www.farpost.ru/dalnegorsk/rabota/vacansii/",
             "https://www.farpost.ru/lesozavodsk/rabota/vacansii/",
             "https://www.farpost.ru/nakhodka/rabota/vacansii/",
@@ -52,8 +52,8 @@ def get_url_list():
 
 # Города должны идти в том же порядке, что и список ссылок
 def get_city_list():
-    city = ["Арсеньев", "Артем",
-            "Большой Камень", "Владивосток",
+    city = ["Владивосток", "Арсеньев", "Артем",
+            "Большой Камень",
             "Дальнегорск", "Лесозаводск",
             "Находка", "Партизанск",
             "Спасск-Дальний", "Уссурийск"]
@@ -92,22 +92,44 @@ async def scroll_to_bottom(driver):  # Функция для прокручив�
     return
 
 
-async def get_html(driver):  # Функция для получения HTML-кода всей страницы
-    await scroll_to_bottom(driver)
-    html_code = driver.page_source
+async def get_html(driver, url, page):  # Функция для получения HTML-кода всей страницы
+    url = f"{url}?page={page}"
+    print(driver.current_url)
+    driver.get(url)
+    await asyncio.sleep(SEC_WAIT_TO_SCROLL)
 
-    # Закрываем браузер
-    driver.quit()
+    while True:
+        if "/verify" in driver.current_url:
+            await asyncio.sleep(SEC_WAIT_CAPCHA)
+            continue
+        break
+
+    if "/verify" in driver.current_url:
+        return -1
+
+    if "?page=" not in driver.current_url:
+        return None
+    await asyncio.sleep(SEC_WAIT_TO_SCROLL)
+
+   # driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+  #  await asyncio.sleep(SEC_WAIT_TO_SCROLL)
+
+    html_code = driver.page_source
     return html_code
 
 
 def process_data(html_code, city):
     domen = 'https://www.farpost.ru'
+    if html_code is None:
+        return None
     soup = BeautifulSoup(html_code, 'html.parser')
 
     all_info = soup.find_all(
         class_="descriptionCell bull-item-content__cell bull-item-content__description-cell js-description-block"
     )
+    if all_info is None:
+        return None
+
     city_vacancies = {
         "Профессия": [], "Зарплата": [], "Населённый пункт": [], "Наниматель": [],
         "Ссылка": [], "Дата публикации": [], "Дата сбора данных": []
@@ -159,28 +181,50 @@ def process_data(html_code, city):
 
 
 async def get_farpost_data():
-    print("FarPost: фильтрация собранных данных")
     urls = get_url_list()
     cities = get_city_list()
     dfs = []  # Список для DataFrame с каждого города
+    driver = connect_driver()
     for num, url in enumerate(urls):
-        driver = connect_driver()
         driver.get(url)
 
         # Ожидаем загрузку страницы
         await asyncio.sleep(SEC_WAIT_TO_LOAD_PAGE)
         driver.maximize_window()
         city = cities[num]
+        city_dfs = []
 
-        html_code = await get_html(driver)
-        dfs.append(process_data(html_code, city))
+        for page in range(1, 181):
+            html_code = await get_html(driver, url, page)
+
+            # Если возникли проблемы: ждём и перезапускаем браузер
+            if html_code == -1:
+                driver.quit()
+                await asyncio.sleep(SEC_WAIT_CAPCHA)
+                driver.get(url)
+                html_code = await get_html(driver, url, page)
+
+            temp = process_data(html_code, city)
+            if temp is None:
+                break
+            city_dfs.append(temp)
+
+        await asyncio.sleep(SEC_WAIT_TO_LOAD_PAGE)
+
+        concat_dfs = pd.concat(city_dfs, ignore_index=True)
+        dfs.append(concat_dfs)
         print(f"FarPost: данные собраны по {num + 1} из {len(urls)} городов")
 
+    # Закрываем браузер
+    driver.quit()
     total_df = pd.concat(dfs, ignore_index=True)
     return total_df
 
 
 def filter_data(df):
+    # Отключаем предупреждения
+    pd.options.mode.chained_assignment = None  # default='warn'
+
     # Получаем ID-вакансий
     df["Ссылка"] = df["Ссылка"].apply(lambda x: x.split('-')[-1])
     df["Ссылка"] = df["Ссылка"].apply(lambda x: x.rstrip('.html'))
@@ -245,8 +289,7 @@ async def run_farpost():
 async def collect_to_excel():
     df_farpost = await run_farpost()
     today_date = datetime.date.today()
-    path_to_export = os.path.join(os.path.dirname(__file__), '..', '..', 'Data', 'FarPost',
-                                  f"FarPost - {today_date}.xlsx")
+    path_to_export = os.path.join(os.path.abspath(os.curdir), f"FarPost - {today_date}.xlsx")
     df_farpost.to_excel(path_to_export, sheet_name='Данные', index=False)
 
 

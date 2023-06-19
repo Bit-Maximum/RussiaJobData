@@ -10,6 +10,7 @@ from aiohttp import ClientSession
 
 # Для валидации URL-адреса
 import urllib3
+import urllib3.exceptions
 
 
 # Время исполнения программы: ~30 сек
