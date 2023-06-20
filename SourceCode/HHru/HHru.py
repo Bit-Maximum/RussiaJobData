@@ -79,32 +79,50 @@ async def get_page(vacancy: str, area=22, page=0):
 
 
 async def get_count(vacancy: str, area=22, page=0):
-    async with ClientSession() as session:
-        url = 'https://api.hh.ru/vacancies'
-        params = {
-            "text": vacancy,
-            "area": area,
-            "page": page,
-            "per_page": 1,
-            "search_field": ["name", "description"]
-        }
-        async with session.get(url=url, params=params) as response:
-            count = await response.json()
-            res = count["found"]
-            return res
+    for _ in range(3):  # Бросаем исключение, если по запросу не нашлось ни одной вакансии
+        try:            # Но сначала проверяем второй раз - на случай, если это был просто пролаг
+            async with ClientSession() as session:
+                url = 'https://api.hh.ru/vacancies'
+                params = {
+                    "text": vacancy,
+                    "area": area,
+                    "page": page,
+                    "per_page": 1,
+                    "search_field": ["name", "description"]
+                }
+                async with session.get(url=url, params=params) as response:
+                    count = await response.json()
+                    res = count["found"]
+                    return res
+        except:
+            await asyncio.sleep(REGION_TIME_OUT)
+            continue
+    # Если ничего не найдено, то HHru не возвращает ничего - поэтому вернём 0 вручную
+    return 0
 
 
 async def get_vacancies(vacancy, area):
-    js_objs = []
-    page_code = await get_page(vacancy, area)
-    total_pages = json.loads(page_code)["pages"]
-    await asyncio.sleep(TIME_OUT)
-    for i in range(total_pages):  # Максимально можно получить только 2000 результатов (20 страниц по 100 элементов)
-        js_code = await get_page(vacancy, area, i)
-        js = json.loads(js_code)
-        js_objs.extend(js["items"])
+    try:
+        js_objs = []
+        page_code = await get_page(vacancy, area)
+        total_pages = json.loads(page_code)["pages"]
         await asyncio.sleep(TIME_OUT)
+    except:
+        return None
+
+    for i in range(total_pages):  # Максимально можно получить только 2000 результатов (20 страниц по 100 элементов)
+        try:
+            js_code = await get_page(vacancy, area, i)
+            js = json.loads(js_code)
+            js_objs.extend(js["items"])
+            await asyncio.sleep(TIME_OUT)
+        except:
+            await asyncio.sleep(TIME_OUT)
+            continue
+    if not js_objs:
+        return None
     return js_objs
+
 
 
 # Можете использовать свой собственный список профессий
@@ -135,7 +153,10 @@ async def get_hhru_data():
                     found = await get_count(prof, city_id)
 
                     if found > 0:
-                        temp = pd.DataFrame(await get_vacancies(prof, city_id))
+                        temp = await get_vacancies(prof, city_id)
+                        if temp is None:
+                            continue
+                        temp = pd.DataFrame(temp)
                         temp["Профессия"] = prof
                         temp["Дата сбора"] = current_date
                         dfs.append(temp)
@@ -145,7 +166,10 @@ async def get_hhru_data():
                     if total_found < 1:
                         break
             else:  # Или сразу забираем все данные
-                temp = pd.DataFrame(await get_vacancies(prof, prim_id))
+                temp = await get_vacancies(prof, prim_id)
+                if temp is None:
+                    continue
+                temp = pd.DataFrame(temp)
                 temp["Профессия"] = prof
                 temp["Дата сбора"] = current_date
                 dfs.append(temp)

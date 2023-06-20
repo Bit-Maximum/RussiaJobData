@@ -37,7 +37,6 @@ def connect_driver():
 
 # Ссылки должны идти в том же порядке, что и список городов
 def get_url_list():
-
     urls = ["https://www.farpost.ru/vladivostok/rabota/vacansii/",
             "https://www.farpost.ru/arsenev/rabota/vacansii/",
             "https://www.farpost.ru/artem/rabota/vacansii/",
@@ -282,6 +281,7 @@ async def run_farpost():
         print("FarPost: начинаем собирать данные")
         df = await get_farpost_data()
         df = filter_data(df)
+        print("FarPost: собор данных завершён")
         return df
     except Exception:
         print("FarPost: произошла ошибка. Сбор данных с источника остановлен.")
