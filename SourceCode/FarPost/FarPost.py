@@ -125,7 +125,7 @@ def process_data(html_code, city):
     soup = BeautifulSoup(html_code, 'html.parser')
 
     all_info = soup.find_all(
-        class_="descriptionCell bull-item-content__cell bull-item-content__description-cell js-description-block"
+        class_="descriptionCell bull-item-content__cell bull-item-content__description-cell"
     )
     if all_info is None:
         return None
