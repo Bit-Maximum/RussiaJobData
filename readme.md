@@ -65,7 +65,7 @@ The collected data is visualized using **Power BI** and **MS Excel** as interact
 
 ![demo](https://github.com/user-attachments/assets/211afa96-7c0e-46dd-a1cb-be1868a48a6f)
 
-![dashboard Power BI](Translation/media/dashboard-preview.png)
+![dashboard Power BI](Translation/Media/1.png)
 
 ## 🏅 Achievements
 
