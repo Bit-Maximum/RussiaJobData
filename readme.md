@@ -1,7 +1,7 @@
 # 📊 Labor Market Analysis in Primorsky Krai
 
 [![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/Bit-Maximum/RussiaJobData/blob/master/readme.md)
-[![ru](https://img.shields.io/badge/lang-ru-blue.svg)](https://github.com/Bit-Maximum/RussiaJobData/blob/master/Translations/README.ru.md)
+[![ru](https://img.shields.io/badge/lang-ru-blue.svg)](https://github.com/Bit-Maximum/RussiaJobData/blob/master/Translation/README.ru.md)
 
 _Final project for the **«Digital Departments: Data Analytics»** program_  
 _Case provided by the **Center for Advanced Vocational Training of Primorsky Krai (CAVT PK)**_
