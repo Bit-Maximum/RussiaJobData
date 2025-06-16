@@ -65,7 +65,7 @@ _Кейс предоставлен **Центром опережающей пр�
 
 ![demo](https://github.com/user-attachments/assets/211afa96-7c0e-46dd-a1cb-be1868a48a6f)
 
-![Дашборд в Power BI](Translation/Media/1.png)
+![Дашборд в Power BI](Media/1.png)
 
 ## 🏅 Достижения
 
