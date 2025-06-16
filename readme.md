@@ -1,37 +1,77 @@
-## Аналих рынка труда в Приморском крае
+# 📊 Labor Market Analysis in Primorsky Krai
 
-#Установка приложения
+[![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/Bit-Maximum/RussiaJobData/blob/master/readme.md)
+[![ru](https://img.shields.io/badge/lang-ru-blue.svg)](https://github.com/Bit-Maximum/RussiaJobData/blob/master/Translations/README.ru.md)
 
-Для корректной работы приложения выполните следующие шаги:
-1)	Создайте отдельную папку на вашем компьютере для работы с приложением.
-2)	Скачайте приложение «Сбор вакансий в Приморском крае.exe». Скатать последнюю версию приложения вы можете на станице проекта в GitHub: https://github.com/Bit-Maximum/RussiaJobData 
-	1.	Зайдите в папку «Exe»;
-	2.	Выберите файл «Сбор вакансий в Приморском крае.exe»;
-	3.	Нажмите на кнопку «Скачать» (крайняя правая);
-	
-3)	Поместите скачанный файл в ранее созданию папку.
-4)	(Опционально) Если у вас уже есть ранее собранные с помощью приложения данные, вы можете поместить их в папку с приложением. ВАЖНО: для корректного добавления новых данных к ранее собранным файл с ранними данными должен называться «Вакансии в Приморском крае.xlsx». В противном случае данные будут записаны отдельно в новый файл с таким названием.
-5)	(Опционально) Также вы можете поместить в папку с приложением дашборды.
+_Final project for the **«Digital Departments: Data Analytics»** program_  
+_Case provided by the **Center for Advanced Vocational Training of Primorsky Krai (CAVT PK)**_
 
+## 🧭 About the Project
 
-#Первоначальная настройка дашбордов
+This project presents a labor market analysis system for the Primorsky Krai.
+The collected data is visualized using **Power BI** and **MS Excel** as interactive dashboards that allow users to:
 
-Для корректной подготовки дашбордов выполните следующие шаги:
-#MS Power Bi
-1)	Откройте файл «Дашборд_Вакансии_в_Приморском_крае.pbix»
-2)	Откройте вкладку «Данные»
-3)	Нажмите на кнопку «Дополнительные параметры»
-4)	Выберете опцию «Изменить запрос»
-5)	В открывшемся окне во вкладке «Применённые шаги» нажмите на шестерёнку напротив надписи «Источник»
-6)	Введите путь к файлу собранными данными (называется «Вакансии в Приморском крае.xlsx») и нажмите «ОК»
-7)	Нажмите кнопку «Закрыть и применить»
+- Assess demand for various professions
+- Analyze employer requirements
+- Track job distribution across localities
+- Explore salary levels offered
+- Identify the region’s most active employers
 
+> The project was applied in practice and received positive feedback from industry professionals.
+> A [recommendation letter](docs/recommendation.pdf) was issued by the CAVT of Primorsky Krai.
 
-#MS Excel
-1)	Откройте файл «Дашборд_Вакансии_в_Приморском_крае.xlsx»
-2)	Выберите лист «Данные»
-3)	На панели инструментов выберите «Запрос»
-4)	Нажмите на кнопку «Изменить»
-5)	В открывшемся окне во вкладке «Применённые шаги» нажмите на шестерёнку напротив надписи «Источник»
-6)	Введите путь к файлу собранными данными (называется «Вакансии в Приморском крае.xlsx») и нажмите «ОК»
-7)	Нажмите кнопку «Закрыть и применить»
+## ✨ Project Features
+
+- 📥 Data collection from job websites: `hh.ru`, `farpost.ru`, `rabota.ru`
+- 📊 Data processing in Excel
+- 📈 Creation of interactive dashboards in Power BI and Excel
+- 📁 Support for Excel import/export
+- ⚙ Ability to update and merge with previous datasets
+
+## 🛠 Stack
+
+- **Programming Language:** Python
+- **Libraries:** `requests`, `beautifulsoup4`, `selenium`, `pandas`
+- **Visualization Tools:** Microsoft Power BI, Microsoft Excel
+- **Data Formats:** `.xlsx`, `.pbix`
+
+## 🖥 Installation & Launch
+
+### 📦 Application Setup
+
+1. Create a folder on your computer for the project
+2. Download the latest version of `Сбор вакансий в Приморском крае.exe` from the [Releases](https://github.com/Bit-Maximum/RussiaJobData/releases)
+3. Place the `.exe` file into this folder
+4. (Optional) Place existing data in the file `Вакансии в Приморском крае.xlsx`
+5. (Optional) Place dashboard files into the folder for automatic loading
+
+### 📊 Initial Dashboard Configuration
+
+#### Power BI:
+1. Open `Дашборд_Вакансии_в_Приморском_крае.pbix`
+2. Go to the **`Data` → `Advanced Options`** tab
+3. Click **`Edit Query`**
+4. Click the gear icon next to **`Source`** and specify the path to the file `Вакансии в Приморском крае.xlsx`
+5. Click **`Close & Apply`**
+
+#### Excel:
+1. Open `Дашборд_Вакансии_в_Приморском_крае.xlsx`
+2. Select the `Data` sheet
+3. Go to **`Data` → `Edit Query`**
+4. Specify the path to the file `Вакансии в Приморском крае.xlsx`
+5. Save and refresh the tables
+
+## 📸 Gallery
+
+![Дашборд в Power BI](media/dashboard-preview.png)
+
+## 🏅 Achievements
+
+- ✅ Successfully implemented in a real-world environment
+- 📄 Received a [recommendation letter](docs/recommendation.pdf) from the CAVT of Primorsky Krai
+- 🎓 Completed as a thesis project under the *«Digital Departments»* program
+
+---
+
+> This project remains relevant for regional labor market analysis.
+> The repository serves both as a skills showcase and a foundation for future development.
