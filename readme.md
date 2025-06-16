@@ -18,7 +18,7 @@ The collected data is visualized using **Power BI** and **MS Excel** as interact
 - Identify the region’s most active employers
 
 > The project was applied in practice and received positive feedback from industry professionals.
-> A [recommendation letter](docs/recommendation.pdf) was issued by the CAVT of Primorsky Krai.
+> A [recommendation letter](https://github.com/Bit-Maximum/RussiaJobData/blob/master/Translation/Media/Recomend.pdf) was issued by the CAVT of Primorsky Krai.
 
 ## ✨ Project Features
 
@@ -63,12 +63,14 @@ The collected data is visualized using **Power BI** and **MS Excel** as interact
 
 ## 📸 Gallery
 
-![Дашборд в Power BI](media/dashboard-preview.png)
+![demo](https://github.com/user-attachments/assets/211afa96-7c0e-46dd-a1cb-be1868a48a6f)
+
+![dashboard Power BI](Translation/media/dashboard-preview.png)
 
 ## 🏅 Achievements
 
 - ✅ Successfully implemented in a real-world environment
-- 📄 Received a [recommendation letter](docs/recommendation.pdf) from the CAVT of Primorsky Krai
+- 📄 Received a [recommendation letter](https://github.com/Bit-Maximum/RussiaJobData/blob/master/Translation/Media/Recomend.pdf) from the CAVT of Primorsky Krai
 - 🎓 Completed as a thesis project under the *«Digital Departments»* program
 
 ---
