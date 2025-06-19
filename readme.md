@@ -20,6 +20,8 @@ The collected data is visualized using **Power BI** and **MS Excel** as interact
 > The project was applied in practice and received positive feedback from industry professionals.
 > A [recommendation letter](https://github.com/Bit-Maximum/RussiaJobData/blob/master/Translation/Media/Recomend.pdf) was issued by the CAVT of Primorsky Krai.
 
+![demo](https://github.com/user-attachments/assets/211afa96-7c0e-46dd-a1cb-be1868a48a6f)
+
 ## ✨ Project Features
 
 - 📥 Data collection from job websites: `hh.ru`, `farpost.ru`, `rabota.ru`
